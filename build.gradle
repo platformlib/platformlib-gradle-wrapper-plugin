@@ -1,0 +1,59 @@
+plugins {
+    id "com.gradle.plugin-publish" version "0.12.0"
+    id 'java-gradle-plugin'
+    id 'groovy'
+}
+//
+group = 'com.platformlib.gradle-wrapper'
+version = project.findProperty('build.version') ?: '1.0-SNAPSHOT'
+
+description "Gradle wrapper plugin to build gradle project in docker"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api group: 'com.platformlib', name: 'platformlib-os-local', version: project['platformlib-os.version']
+}
+
+gradlePlugin {
+    plugins {
+        gradleWrapperPlugin {
+            id = 'com.platformlib.gradle-wrapper'
+            implementationClass = 'com.platformlib.plugins.gradle.wrapper.PlatformLibGradleWrapperPlugin'
+        }
+    }
+}
+
+pluginBundle {
+    website = 'http://platformlib.com/'
+    vcsUrl = 'https://github.com/platformlib/platformlib-gradle-wrapper-plugin'
+    tags = ['docker', 'wrapper', 'gradle', 'build']
+    plugins {
+        gradleWrapperPlugin {
+            displayName = 'Gradle wrapper build plugin'
+            description = 'Build gradle project in docker or in remote host'
+        }
+    }
+}
+
+sourceSets {
+  main {
+    java { srcDirs = [] }    // no source dirs for the java compiler
+    groovy { srcDirs = ["src/main/groovy", "src/main/java"] }  // compile   everything in src/ with groovy
+  }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+
+apply plugin: 'maven-publish'
+
+publishing {
+    repositories {
+        maven {
+        }
+    }
+}
