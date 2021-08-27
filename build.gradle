@@ -1,5 +1,5 @@
 plugins {
-    id "com.gradle.plugin-publish" version "0.12.0"
+    id "com.gradle.plugin-publish" version "0.15.0"
     id 'java-gradle-plugin'
     id 'groovy'
 }
@@ -7,7 +7,7 @@ plugins {
 group = 'com.platformlib.gradle-wrapper'
 version = project.findProperty('build.version') ?: '1.0-SNAPSHOT'
 
-description "Gradle wrapper plugin to build gradle project in docker"
+description "Gradle wrapper plugin to build gradle project in docker or on remote host"
 
 repositories {
     mavenCentral()
@@ -15,6 +15,11 @@ repositories {
 
 dependencies {
     api group: 'com.platformlib', name: 'platformlib-os-local', version: project['platformlib-os.version']
+    testImplementation gradleTestKit()
+    testImplementation platform("org.junit:junit-bom:${project.'junit-jupiter.version'}")
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "org.junit.jupiter:junit-jupiter-params"
+    testImplementation group: 'org.assertj', name: 'assertj-core', version: project['assertj.version']
 }
 
 gradlePlugin {
@@ -45,15 +50,15 @@ sourceSets {
   }
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+    withJavadocJar()
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
 
+test {
+    useJUnitPlatform()
+}
 
 apply plugin: 'maven-publish'
-
-publishing {
-    repositories {
-        maven {
-        }
-    }
-}

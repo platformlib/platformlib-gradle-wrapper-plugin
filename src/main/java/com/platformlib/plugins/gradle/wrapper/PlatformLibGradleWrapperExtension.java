@@ -8,6 +8,7 @@ import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.model.ObjectFactory;
 
 import javax.inject.Inject;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class PlatformLibGradleWrapperExtension extends PlatformLibGradleWrapperC
     private final NamedDomainObjectContainer<SshGradleWrapperConfiguration> sshGradleWrapperConfigurations;
     private List<Object> unwrappedTasks = new ArrayList<>();
     private boolean enabled;
+    private File wrapperBaseDir;
 
     @Inject
     public PlatformLibGradleWrapperExtension(final ObjectFactory objectFactory) {
@@ -51,5 +53,13 @@ public class PlatformLibGradleWrapperExtension extends PlatformLibGradleWrapperC
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public File getWrapperBaseDir() {
+        return wrapperBaseDir;
+    }
+
+    public void setWrapperBaseDir(File wrapperBaseDir) {
+        this.wrapperBaseDir = wrapperBaseDir;
     }
 }

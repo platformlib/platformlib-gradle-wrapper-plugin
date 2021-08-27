@@ -9,6 +9,9 @@ public class DockerGradleWrapperConfiguration extends PlatformLibGradleWrapperCo
     private boolean useCurrentJava;
     private Collection<String> m2Artifacts = new ArrayList<>();
     private Collection<String> dockerOptions = new ArrayList<>();
+    private String workDir;
+    private boolean mapBuildDir;
+    private boolean bindLocalM2Repository;
 
     public DockerGradleWrapperConfiguration(final String name) {
         this.name = name;
@@ -34,6 +37,10 @@ public class DockerGradleWrapperConfiguration extends PlatformLibGradleWrapperCo
         this.useCurrentJava = useCurrentJava;
     }
 
+    public void setBindLocalM2Repository(boolean bindLocalM2Repository) {
+        this.bindLocalM2Repository = bindLocalM2Repository;
+    }
+
     public Collection<String> getM2Artifacts() {
         return m2Artifacts;
     }
@@ -48,5 +55,30 @@ public class DockerGradleWrapperConfiguration extends PlatformLibGradleWrapperCo
 
     public void setDockerOptions(Collection<String> dockerOptions) {
         this.dockerOptions = dockerOptions;
+    }
+
+
+    public String getWorkDir() {
+        return workDir;
+    }
+
+    public void setWorkDir(String workDir) {
+        this.workDir = workDir;
+    }
+
+    public boolean isMapBuildDir() {
+        return mapBuildDir;
+    }
+
+    public void mapBuildDir() {
+        this.mapBuildDir = true;
+    }
+
+    public void bindLocalM2Repository() {
+        this.bindLocalM2Repository = true;
+    }
+
+    public boolean isBindLocalM2Repository() {
+        return bindLocalM2Repository;
     }
 }

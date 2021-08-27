@@ -1,0 +1,7 @@
+pluginManagement {
+    plugins {
+        id 'com.platformlib.gradle-wrapper' version settings['platformlib-gradle-wrapper.version']
+    }
+}
+
+rootProject.name='platformlib-gradle-wrapper-plugin-ft-simple-wrapping-gradle-project'

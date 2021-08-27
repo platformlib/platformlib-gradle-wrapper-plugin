@@ -18,6 +18,7 @@ public class PlatformLibGradleWrapperConfiguration {
     private String javaHome;
     private boolean parallelExecution;
     private boolean dryRun;
+    private boolean debug;
 
     public PlatformLibGradleWrapperConfiguration() {
     }
@@ -103,5 +104,13 @@ public class PlatformLibGradleWrapperConfiguration {
 
     public void setDryRun(boolean dryRun) {
         this.dryRun = dryRun;
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
     }
 }

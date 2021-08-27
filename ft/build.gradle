@@ -1,0 +1,25 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+group = 'com.platformlib.gradle-wrapper.ft'
+version = project.findProperty('build.version') ?: '1.0-SNAPSHOT'
+
+description "Gradle wrapper plugin functional tests"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'com.platformlib', name: 'platformlib-process-local', version: project['platformlib-process.version']
+    testImplementation group: 'org.assertj', name: 'assertj-core', version: project['assertj.version']
+    testImplementation platform("org.junit:junit-bom:${project.'junit-jupiter.version'}")
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "org.junit.jupiter:junit-jupiter-params"
+}
+
+test {
+    useJUnitPlatform()
+}
+

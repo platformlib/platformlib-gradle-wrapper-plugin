@@ -1,0 +1,29 @@
+plugins {
+    id 'base'
+    id 'com.platformlib.gradle-wrapper'
+}
+
+platformGradleWrapper {
+    docker {
+        golang {
+            image 'golang:1.17.0-stretch'
+            useCurrentJava true
+            dockerOptions = ['--network', 'host']
+            activateBy = { true }
+            bindLocalM2Repository()
+        }
+    }
+}
+
+task buildGoApplication(type: Exec) {
+    outputs.file("$buildDir/go-out/go-hello-world")
+    workingDir = 'src/main/go'
+    commandLine 'go', 'build', '-o', "$buildDir/go-out/go-hello-world"
+}
+
+task prepareGoDistribution(type: Copy, dependsOn: buildGoApplication) {
+    from buildGoApplication
+    into "$buildDir/go-distribution"
+}
+
+build.dependsOn prepareGoDistribution
