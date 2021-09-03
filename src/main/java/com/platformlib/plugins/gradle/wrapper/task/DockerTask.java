@@ -147,6 +147,12 @@ public class DockerTask extends DefaultTask {
                 dockerCommandAndArguments.addAll(Arrays.asList("--workdir", workDir));
             }
             dockerCommandAndArguments.addAll(dockerOptions.stream().map(Objects::toString).collect(Collectors.toList()));
+            if (!env.isEmpty()) {
+                env.forEach((k, v) -> {
+                    dockerCommandAndArguments.add("-e");
+                    dockerCommandAndArguments.add(k + "=" + v);
+                } );
+            }
             dockerCommandAndArguments.add(image);
             dockerCommandAndArguments.addAll(commandAndArguments.stream().map(Objects::toString).collect(Collectors.toList()));
             final ProcessBuilder processBuilder = osPlatform.newProcessBuilder();
@@ -154,14 +160,13 @@ public class DockerTask extends DefaultTask {
             final String taskName = getName();
             final String dockerCommandExt = OsPlatforms.getDefaultOsPlatform().getOsFamily() == OsFamily.WINDOWS ? ".bat" : ".sh";
             try {
+                getProject().file("build").mkdir();
+                //TODO Wrap command line arguments with spaces
                 Files.write(getProject().file("build/docker-command-" + taskName + dockerCommandExt).toPath(), dockerCommandAsString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             } catch (final IOException ioException) {
                 throw new GradleException("Unable to write docker command to file", ioException);
             }
             processBuilder.commandAndArguments(dockerCommandAndArguments.toArray());
-            if (!env.isEmpty()) {
-                processBuilder.envVariables(env.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString())));
-            }
             processBuilder.logger(action -> action.logger(LOGGER));
             if (verbose) {
                 processBuilder.stdOutConsumer(getProject().getLogger()::lifecycle);

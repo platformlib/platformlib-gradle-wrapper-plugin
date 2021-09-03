@@ -13,6 +13,7 @@ const val platformlibGradleWrapperVersionPropertyName = "platformlib-gradle-wrap
 val gradleWrapperPluginVersion: String = System.getProperty(platformlibGradleWrapperVersionPropertyName, System.getenv().getOrDefault(platformlibGradleWrapperVersionPropertyName, "1.0-SNAPSHOT"))
 
 class GradleDsl {
+    var tasks: Collection<String> = emptyList()
 }
 
 data class GradleExec(val gradleProjectDir: Path,
@@ -26,6 +27,13 @@ fun gradle(gradleProject: String, init: GradleDsl.() -> Unit): GradleExec {
     val gradleDsl = GradleDsl()
     gradleDsl.init()
     val projectPath = Objects.requireNonNull(GradleDsl::class.java.getResource("/gradle-projects/$gradleProject"), "The project $gradleProject hasn't been found in resources")!!.toURI().toPath()
+    val cla = ArrayList<String>()
+    if (gradleDsl.tasks.isEmpty()) {
+        cla.addAll(listOf("clean", "build"))
+    } else {
+        cla.addAll(gradleDsl.tasks)
+    }
+    cla.add("-P$platformlibGradleWrapperVersionPropertyName=$gradleWrapperPluginVersion")
     val gradleProcessInstance = LocalProcessBuilderFactory
             .newLocalProcessBuilder()
             .logger { it.logger(logger) }
@@ -33,11 +41,11 @@ fun gradle(gradleProject: String, init: GradleDsl.() -> Unit): GradleExec {
             .defaultExtensionMapping()
             .workDirectory(projectPath)
             .command((if (File.pathSeparatorChar == ':') "./" else "") +   "gradlew")
-            .build().execute("clean", "build", "-P$platformlibGradleWrapperVersionPropertyName=$gradleWrapperPluginVersion")
+            .build().execute(*cla.toArray())
             .toCompletableFuture()
             .join().also {
                 if (it.exitCode != 0) {
-                    throw IllegalStateException("Fail to run gradle command because of exit code $${it.exitCode}")
+                    throw IllegalStateException("Fail to run gradle command because of exit code ${it.exitCode}")
                 }
             }
     return GradleExec(projectPath, gradleProcessInstance)

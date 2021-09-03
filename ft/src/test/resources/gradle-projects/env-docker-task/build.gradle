@@ -1,0 +1,11 @@
+plugins {
+    id 'com.platformlib.gradle-wrapper'
+}
+
+task echo(type: com.platformlib.plugins.gradle.wrapper.task.DockerTask) {
+    image = 'golang:1.17.0-alpine3.14'
+    workDir = '/src'
+    dockerOptions = ['--network', 'host']
+    env = ["MY_VARIABLE": "Every method has to be covered by test"]
+    commandAndArguments = ['/bin/sh', '-c', 'echo $MY_VARIABLE']
+}
