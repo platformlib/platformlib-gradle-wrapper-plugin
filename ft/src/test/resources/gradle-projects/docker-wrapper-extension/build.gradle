@@ -1,0 +1,30 @@
+plugins {
+    id 'base'
+    id 'com.platformlib.gradle-wrapper'
+}
+
+platformDockerWrapper {
+    image = 'golang:1.17.0-alpine3.14'
+    workDir = '/src'
+    dockerOptions = ['--network', 'host']
+    bindMounts = ["${file('src/main/go')}:/src", "$buildDir/go-out:/out", "$buildDir/go-cache:/.cache"]
+    commandAndArguments = ['go', 'build', '-o']
+}
+
+task buildGoApplication1(type: com.platformlib.plugins.gradle.wrapper.task.DockerTask) {
+    outputs.file("$buildDir/go-out/app1")
+    commandAndArguments += ['/out/app1']
+}
+
+task buildGoApplication2(type: com.platformlib.plugins.gradle.wrapper.task.DockerTask) {
+    outputs.file("$buildDir/go-out/app2")
+    commandAndArguments += ['/out/app2']
+}
+
+task prepareGoDistribution(type: Copy, dependsOn: [buildGoApplication1, buildGoApplication2]) {
+    from buildGoApplication1
+    from buildGoApplication2
+    into "$buildDir/go-distribution"
+}
+
+build.dependsOn prepareGoDistribution

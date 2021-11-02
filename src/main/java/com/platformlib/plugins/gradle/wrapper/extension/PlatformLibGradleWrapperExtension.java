@@ -1,4 +1,4 @@
-package com.platformlib.plugins.gradle.wrapper;
+package com.platformlib.plugins.gradle.wrapper.extension;
 
 import com.platformlib.plugins.gradle.wrapper.configuration.DockerGradleWrapperConfiguration;
 import com.platformlib.plugins.gradle.wrapper.configuration.PlatformLibGradleWrapperConfiguration;

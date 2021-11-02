@@ -1,16 +1,14 @@
 package com.platformlib.plugins.gradle.wrapper.task;
 
-import com.platformlib.plugins.gradle.wrapper.PlatformLibGradleWrapperExtension;
+import com.platformlib.plugins.gradle.wrapper.extension.PlatformLibGradleWrapperExtension;
 import com.platformlib.plugins.gradle.wrapper.configuration.PlatformLibGradleWrapperConfiguration;
 import com.platformlib.plugins.gradle.wrapper.utility.PlatformLibGradleWrapperUtility;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

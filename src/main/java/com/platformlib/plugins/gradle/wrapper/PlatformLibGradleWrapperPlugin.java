@@ -1,10 +1,11 @@
 package com.platformlib.plugins.gradle.wrapper;
 
+import com.platformlib.plugins.gradle.wrapper.extension.PlatformLibDockerWrapperExtension;
+import com.platformlib.plugins.gradle.wrapper.extension.PlatformLibGradleWrapperExtension;
 import com.platformlib.plugins.gradle.wrapper.task.AbstractWrapperTask;
 import com.platformlib.plugins.gradle.wrapper.task.DockerWrapperTask;
 import com.platformlib.plugins.gradle.wrapper.task.SshWrapperTask;
 import com.platformlib.plugins.gradle.wrapper.utility.PlatformLibGradleWrapperUtility;
-import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -27,10 +28,11 @@ public class PlatformLibGradleWrapperPlugin implements Plugin<Project>  {
 
     @Override
     public void apply(final Project project) {
+        project.getExtensions().create("platformDockerWrapper", PlatformLibDockerWrapperExtension.class);
         if (project.getRootProject() != project) {
-            throw new GradleException("The com.platformlib.gradle-wrapper must be applied on root project");
+            LOGGER.debug("Skip configuring platform gradle wrapper because of non root project");
+            return;
         }
-
         final PlatformLibGradleWrapperExtension platformLibGradleWrapperExtension = project.getExtensions().create("platformGradleWrapper", PlatformLibGradleWrapperExtension.class);
         platformLibGradleWrapperExtension.setEnabled(!"false".equals(project.findProperty(PlatformLibGradleWrapperExtension.GRADLE_WRAPPER_PLUGIN_PROJECT_PROPERTY)));
 

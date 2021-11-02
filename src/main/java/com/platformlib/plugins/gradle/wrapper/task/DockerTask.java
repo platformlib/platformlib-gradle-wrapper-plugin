@@ -6,6 +6,7 @@ import com.platformlib.os.api.factory.OsPlatforms;
 import com.platformlib.os.api.osi.posix.PosixOsInterface;
 import com.platformlib.os.api.osi.posix.PosixOsUser;
 import com.platformlib.os.local.LocalOsPlatform;
+import com.platformlib.plugins.gradle.wrapper.extension.PlatformLibDockerWrapperExtension;
 import com.platformlib.process.api.ProcessInstance;
 import com.platformlib.process.builder.ProcessBuilder;
 import com.platformlib.process.configurator.ProcessOutputConfigurator;
@@ -26,22 +27,38 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+/**
+ * Task to be executed in docker container.
+ */
 public class DockerTask extends DefaultTask {
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerTask.class);
     private String image;
     private Collection<Object> dockerOptions = new ArrayList<>();
     private String workDir;
     private Collection<Object> bindMounts = new ArrayList<>();
-    private String bindDirectory;
     private Collection<Object> commandAndArguments = new ArrayList<>();
     private Map<String, Object> env = new HashMap<>();
     private Boolean verbose = true;
+
+    public DockerTask() {
+        final PlatformLibDockerWrapperExtension platformLibDockerWrapperExtension = (PlatformLibDockerWrapperExtension) getProject().getExtensions().findByName("platformDockerWrapper");
+        if (platformLibDockerWrapperExtension != null) {
+            image = platformLibDockerWrapperExtension.getImage().getOrNull();
+            dockerOptions.addAll(platformLibDockerWrapperExtension.getDockerOptions().getOrElse(Collections.emptyList()));
+            workDir = platformLibDockerWrapperExtension.getWorkDir().getOrNull();
+            bindMounts.addAll(platformLibDockerWrapperExtension.getBindMounts().getOrElse(Collections.emptyList()));
+            commandAndArguments.addAll(platformLibDockerWrapperExtension.getCommandAndArguments().getOrElse(Collections.emptyList()));
+            env.putAll(platformLibDockerWrapperExtension.getEnv().getOrElse(Collections.emptyMap()));
+        }
+    }
 
     public void setImage(final String image) {
         this.image = image;
@@ -49,10 +66,6 @@ public class DockerTask extends DefaultTask {
 
     public void setWorkDir(final String workDir) {
         this.workDir = workDir;
-    }
-
-    public void setBindDirectory(final String bindDirectory) {
-        this.bindDirectory = bindDirectory;
     }
 
     public void setDockerOptions(final Collection<Object> dockerOptions) {
@@ -112,12 +125,6 @@ public class DockerTask extends DefaultTask {
 
     @Input
     @Optional
-    public String getBindDirectory() {
-        return bindDirectory;
-    }
-
-    @Input
-    @Optional
     public Collection<Object> getCommandAndArguments() {
         return commandAndArguments;
     }
@@ -167,26 +174,41 @@ public class DockerTask extends DefaultTask {
                 throw new GradleException("Unable to write docker command to file", ioException);
             }
             processBuilder.commandAndArguments(dockerCommandAndArguments.toArray());
-            processBuilder.logger(action -> action.logger(LOGGER));
-            if (verbose) {
-                processBuilder.stdOutConsumer(getProject().getLogger()::lifecycle);
-                processBuilder.stdErrConsumer(getProject().getLogger()::lifecycle);
-            } else if (!LOGGER.isDebugEnabled() && LOGGER.isInfoEnabled()) {
-                processBuilder.stdOutConsumer(getProject().getLogger()::info);
-                processBuilder.stdErrConsumer(getProject().getLogger()::info);
-            }
-            final ProcessInstance processInstance = processBuilder
-                    .processInstance(ProcessOutputConfigurator::unlimited)
-                    .build()
-                    .execute()
-                    .toCompletableFuture()
-                    .join();
-            if (processInstance.getExitCode() != 0) {
-                getProject().getLogger().error("The docker command: {}", dockerCommandAsString);
-                getProject().getLogger().error("The docker command stdOut: {}", processInstance.getStdOut());
-                getProject().getLogger().error("The docker command stdErr: {}", processInstance.getStdErr());
-                throw new GradleException("The docker command execution failed [exit code " + processInstance.getExitCode() + "]");
-            }
+            configureLoggingAndExecute(processBuilder, () -> dockerCommandAsString);
+        }
+    }
+
+    //@Internal
+    public void pullImage() {
+        getLogger().lifecycle("Pull docker image {}", image);
+        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList("docker", "pull", image));
+        try (OsPlatform osPlatform = LocalOsPlatform.getInstance()) {
+            final ProcessBuilder processBuilder = osPlatform.newProcessBuilder();
+            processBuilder.commandAndArguments(dockerCommandAndArguments.toArray());
+            configureLoggingAndExecute(processBuilder, () -> String.join(" ", dockerCommandAndArguments));
+        }
+    }
+
+    private void configureLoggingAndExecute(final ProcessBuilder processBuilder, final Supplier<String> dockerCommandAsStringSupplier) {
+        processBuilder.logger(action -> action.logger(LOGGER));
+        if (verbose) {
+            processBuilder.stdOutConsumer(getProject().getLogger()::lifecycle);
+            processBuilder.stdErrConsumer(getProject().getLogger()::lifecycle);
+        } else if (!LOGGER.isDebugEnabled() && LOGGER.isInfoEnabled()) {
+            processBuilder.stdOutConsumer(getProject().getLogger()::info);
+            processBuilder.stdErrConsumer(getProject().getLogger()::info);
+        }
+        final ProcessInstance processInstance = processBuilder
+                .processInstance(ProcessOutputConfigurator::unlimited)
+                .build()
+                .execute()
+                .toCompletableFuture()
+                .join();
+        if (processInstance.getExitCode() != 0) {
+            getProject().getLogger().error("The docker command: {}", dockerCommandAsStringSupplier.get());
+            getProject().getLogger().error("The docker command stdOut: {}", processInstance.getStdOut());
+            getProject().getLogger().error("The docker command stdErr: {}", processInstance.getStdErr());
+            throw new GradleException("The docker command execution failed [exit code " + processInstance.getExitCode() + "]");
         }
     }
 }

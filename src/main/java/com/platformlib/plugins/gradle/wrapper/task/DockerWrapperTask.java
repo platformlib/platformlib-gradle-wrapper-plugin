@@ -27,6 +27,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Task to build gradle project in docker container.
+ */
 public class DockerWrapperTask extends AbstractWrapperTask<DockerGradleWrapperConfiguration> {
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerWrapperTask.class);
     private String dockerHostEndpoint = "/platform-gradle-wrapper";
