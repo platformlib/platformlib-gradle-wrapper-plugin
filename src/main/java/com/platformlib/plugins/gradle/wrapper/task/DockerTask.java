@@ -27,7 +27,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,7 +130,15 @@ public class DockerTask extends DefaultTask {
 
     @TaskAction
     public void executeInDockerContainer() {
-        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList("docker", "container", "run", "--rm"));
+        String dockerCommand = "docker";
+        final String dockerBinEnvParameter = (String) getProject().getRootProject().getProperties().get("platformlib.docker-bin-env-parameter");
+        if (dockerBinEnvParameter != null) {
+            final String dockerBinEnv = System.getenv(dockerBinEnvParameter);
+            if (dockerBinEnv != null) {
+                dockerCommand = dockerBinEnv;
+            }
+        }
+        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList(dockerCommand, "container", "run", "--rm"));
         try (OsPlatform osPlatform = LocalOsPlatform.getInstance()) {
             if (osPlatform.getOsFamily() == OsFamily.UNIX) {
                 final PosixOsUser posixOsUser = osPlatform.getTypedOsInterface(PosixOsInterface.class).getCurrentUser();
