@@ -51,12 +51,12 @@ public class DockerTask extends DefaultTask {
     public DockerTask() {
         final PlatformLibDockerWrapperExtension platformLibDockerWrapperExtension = (PlatformLibDockerWrapperExtension) getProject().getExtensions().findByName("platformDockerWrapper");
         if (platformLibDockerWrapperExtension != null) {
-            image = platformLibDockerWrapperExtension.getImage().getOrNull();
-            dockerOptions.addAll(platformLibDockerWrapperExtension.getDockerOptions().getOrElse(Collections.emptyList()));
-            workDir = platformLibDockerWrapperExtension.getWorkDir().getOrNull();
-            bindMounts.addAll(platformLibDockerWrapperExtension.getBindMounts().getOrElse(Collections.emptyList()));
-            commandAndArguments.addAll(platformLibDockerWrapperExtension.getCommandAndArguments().getOrElse(Collections.emptyList()));
-            env.putAll(platformLibDockerWrapperExtension.getEnv().getOrElse(Collections.emptyMap()));
+            image = platformLibDockerWrapperExtension.getImage();
+            dockerOptions.addAll(platformLibDockerWrapperExtension.getDockerOptions());
+            workDir = platformLibDockerWrapperExtension.getWorkDir();
+            bindMounts.addAll(platformLibDockerWrapperExtension.getBindMounts());
+            commandAndArguments.addAll(platformLibDockerWrapperExtension.getCommandAndArguments());
+            env.putAll(platformLibDockerWrapperExtension.getEnv());
         }
     }
 
@@ -130,7 +130,7 @@ public class DockerTask extends DefaultTask {
     }
 
     @TaskAction
-    public void execute() {
+    public void executeInDockerContainer() {
         final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList("docker", "container", "run", "--rm"));
         try (OsPlatform osPlatform = LocalOsPlatform.getInstance()) {
             if (osPlatform.getOsFamily() == OsFamily.UNIX) {
@@ -139,7 +139,13 @@ public class DockerTask extends DefaultTask {
             }
             bindMounts.forEach(bindMount -> {
                 final String bindMountAsString = bindMount.toString();
-                final Path bindMountPath = Paths.get(bindMountAsString.split(":")[0]);
+                //TODO Check how does docker split -v bind directories on windows
+                final int fromIndex = osPlatform.getOsFamily() == OsFamily.WINDOWS ? 2 : 0; //Ignore <Driver>:
+                final int delimiterIndex = bindMountAsString.indexOf(":", fromIndex);
+                if (delimiterIndex == -1) {
+                    throw new GradleException("Unable to parse bind option '" + bindMountAsString + "'");
+                }
+                final Path bindMountPath = Paths.get(bindMountAsString.substring(0, delimiterIndex));
                 if (!Files.isDirectory(bindMountPath)) {
                     try {
                         LOGGER.info("Create bind directory {}", bindMountPath);
@@ -181,7 +187,7 @@ public class DockerTask extends DefaultTask {
     //@Internal
     public void pullImage() {
         getLogger().lifecycle("Pull docker image {}", image);
-        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList("docker", "pull", image));
+        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList("docker", "pull", "--quiet", image));
         try (OsPlatform osPlatform = LocalOsPlatform.getInstance()) {
             final ProcessBuilder processBuilder = osPlatform.newProcessBuilder();
             processBuilder.commandAndArguments(dockerCommandAndArguments.toArray());

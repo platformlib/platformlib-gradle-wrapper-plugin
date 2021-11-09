@@ -3,8 +3,17 @@ package com.platformlib.plugins.gradle.wrapper.task
 import com.platformlib.plugins.gradle.wrapper.gradle
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledOnJre
+import org.junit.jupiter.api.condition.JRE
 
 class DockerTaskTest {
+
+    @Test
+    @EnabledOnJre(JRE.JAVA_8)
+    fun testSingleDockerTaskOnGradle4103() {
+        assertThat(gradle("single-docker-task-gradle-4.10.3").gradleProjectDir.resolve("build/go-distribution/go-hello-world")).exists()
+    }
+
     @Test
     fun testSingleDockerTask() {
         assertThat(gradle("single-docker-task").gradleProjectDir.resolve("build/go-distribution/go-hello-world")).exists()

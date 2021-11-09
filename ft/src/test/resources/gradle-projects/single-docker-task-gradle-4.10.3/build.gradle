@@ -1,0 +1,27 @@
+buildscript {
+    dependencies {
+       classpath "com.platformlib.gradle-wrapper:platformlib-gradle-wrapper-plugin:${project.findProperty('platformlib-gradle-wrapper.version') ?: '1.0-SNAPSHOT'}"
+
+    }
+}
+
+apply plugin: 'base'
+apply plugin: 'com.platformlib.gradle-wrapper'
+
+
+task buildGoApplication(type: com.platformlib.plugins.gradle.wrapper.task.DockerTask) {
+    outputs.file("$buildDir/go-out/go-hello-world")
+
+    image = 'golang:1.17.0-alpine3.14'
+    workDir = '/src'
+    dockerOptions = ['--network', 'host']
+    bindMounts = ["${file('src/main/go')}:/src", "$buildDir/go-out:/out", "$buildDir/go-cache:/.cache"]
+    commandAndArguments = ['go', 'build', '-o', '/out/go-hello-world']
+}
+
+task prepareGoDistribution(type: Copy, dependsOn: buildGoApplication) {
+    from buildGoApplication
+    into "$buildDir/go-distribution"
+}
+
+build.dependsOn prepareGoDistribution

@@ -11,6 +11,7 @@ import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.execution.TaskExecutionGraph;
 import org.gradle.api.tasks.Sync;
+import org.gradle.util.GradleVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +32,10 @@ public class PlatformLibGradleWrapperPlugin implements Plugin<Project>  {
         project.getExtensions().create("platformDockerWrapper", PlatformLibDockerWrapperExtension.class);
         if (project.getRootProject() != project) {
             LOGGER.debug("Skip configuring platform gradle wrapper because of non root project");
+            return;
+        }
+        if (GradleVersion.current().compareTo(GradleVersion.version("6.0")) < 0) {
+            LOGGER.debug("Only Docker task is available because of used gradle version {}", GradleVersion.current());
             return;
         }
         final PlatformLibGradleWrapperExtension platformLibGradleWrapperExtension = project.getExtensions().create("platformGradleWrapper", PlatformLibGradleWrapperExtension.class);
