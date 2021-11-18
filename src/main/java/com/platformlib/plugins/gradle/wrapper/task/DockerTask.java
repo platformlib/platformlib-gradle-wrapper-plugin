@@ -194,15 +194,29 @@ public class DockerTask extends DefaultTask {
     //@Internal
     public void pullImage() {
         getLogger().lifecycle("Pull docker image {}", image);
-        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList("docker", "pull", "--quiet", image));
+        final List<String> dockerPull = new ArrayList<>(Arrays.asList("docker", "pull", image));
+        final List<String> dockerQuitePull = new ArrayList<>(Arrays.asList("docker", "pull", "--quiet", image));
         try (OsPlatform osPlatform = LocalOsPlatform.getInstance()) {
-            final ProcessBuilder processBuilder = osPlatform.newProcessBuilder();
-            processBuilder.commandAndArguments(dockerCommandAndArguments.toArray());
-            configureLoggingAndExecute(processBuilder, () -> String.join(" ", dockerCommandAndArguments));
+            final ProcessInstance dockerQuiteProcessInstance = executeDockerCommand(osPlatform.newProcessBuilder().commandAndArguments(dockerQuitePull.toArray()), () -> String.join(" ", dockerQuitePull));
+            if (dockerQuiteProcessInstance.getExitCode() != 0) {
+                //--quiet option is available since 19.03, rerun if error because of unknown flag
+                if (dockerQuiteProcessInstance.getStdErr().stream().anyMatch(stdErrLine -> stdErrLine.contains("unknown flag: --quiet"))) {
+                    configureLoggingAndExecute(osPlatform.newProcessBuilder().commandAndArguments(dockerPull.toArray()), () -> String.join(" ", dockerPull));
+                } else {
+                    fail(dockerQuiteProcessInstance, String.join(" ", dockerQuitePull));
+                }
+            }
         }
     }
 
     private void configureLoggingAndExecute(final ProcessBuilder processBuilder, final Supplier<String> dockerCommandAsStringSupplier) {
+        final ProcessInstance processInstance = executeDockerCommand(processBuilder, dockerCommandAsStringSupplier);
+        if (processInstance.getExitCode() != 0) {
+            fail(processInstance, dockerCommandAsStringSupplier.get());
+        }
+    }
+
+    private ProcessInstance executeDockerCommand(final ProcessBuilder processBuilder, final Supplier<String> dockerCommandAsStringSupplier) {
         processBuilder.logger(action -> action.logger(LOGGER));
         if (verbose) {
             processBuilder.stdOutConsumer(getProject().getLogger()::lifecycle);
@@ -211,17 +225,18 @@ public class DockerTask extends DefaultTask {
             processBuilder.stdOutConsumer(getProject().getLogger()::info);
             processBuilder.stdErrConsumer(getProject().getLogger()::info);
         }
-        final ProcessInstance processInstance = processBuilder
+        return processBuilder
                 .processInstance(ProcessOutputConfigurator::unlimited)
                 .build()
                 .execute()
                 .toCompletableFuture()
                 .join();
-        if (processInstance.getExitCode() != 0) {
-            getProject().getLogger().error("The docker command: {}", dockerCommandAsStringSupplier.get());
-            getProject().getLogger().error("The docker command stdOut: {}", processInstance.getStdOut());
-            getProject().getLogger().error("The docker command stdErr: {}", processInstance.getStdErr());
-            throw new GradleException("The docker command execution failed [exit code " + processInstance.getExitCode() + "]");
-        }
+    }
+
+    private void fail(ProcessInstance processInstance, final String dockerCommandAsString) {
+        getProject().getLogger().error("The docker command: {}", dockerCommandAsString);
+        getProject().getLogger().error("The docker command stdOut: {}", processInstance.getStdOut());
+        getProject().getLogger().error("The docker command stdErr: {}", processInstance.getStdErr());
+        throw new GradleException("The docker command execution failed [exit code " + processInstance.getExitCode() + "]");
     }
 }
