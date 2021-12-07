@@ -41,13 +41,15 @@ public class DockerWrapperTask extends AbstractWrapperTask<DockerGradleWrapperCo
     protected void executeWrappedGradle(final Collection<String> gradleCommandAndArguments) {
         final Path buildPath = getBaseBuildPath().toPath().resolve(getId());
 
-        LOGGER.debug("Synchronize project sources");
-        getProject().sync(it -> {
-            it.from (getProject().getRootProject().getProjectDir());
-            it.into(buildPath.resolve(projectSource).toFile());
-            it.exclude("**/build", ".gradle", ".idea", ".git");
-            it.exclude(spec -> spec.getFile().equals(getBaseBuildPath()));
-        });
+        if (!Boolean.TRUE.equals(getConfiguration().getMapProjectDir())) {
+            LOGGER.debug("Synchronize project sources");
+            getProject().sync(it -> {
+                it.from(getProject().getRootProject().getProjectDir());
+                it.into(buildPath.resolve(projectSource).toFile());
+                it.exclude("**/build", ".gradle", ".idea", ".git");
+                it.exclude(spec -> spec.getFile().equals(getBaseBuildPath()));
+            });
+        }
 
         LOGGER.debug("Synchronize ~/.gradle directory");
         getProject().sync(it -> {
@@ -100,23 +102,35 @@ public class DockerWrapperTask extends AbstractWrapperTask<DockerGradleWrapperCo
                 dockerCommandAndArguments.addAll(Arrays.asList("--env", "JAVA_HOME=" + dockerHostJavaHome));
             }
             dockerCommandAndArguments.addAll(Arrays.asList("-v", buildPath + ":" + dockerHostEndpoint));
+            final String projectCacheDir;
             if (getConfiguration().getWorkDir() != null) {
                 dockerCommandAndArguments.addAll(Arrays.asList("--workdir", getConfiguration().getWorkDir()));
+                projectCacheDir = getConfiguration().getWorkDir() + "/build/.gradle";
             } else {
                 dockerCommandAndArguments.addAll(Arrays.asList("--workdir", dockerHostEndpoint + "/" + projectSource));
+                projectCacheDir = dockerHostEndpoint + "/" + projectSource + "/build/.gradle";
             }
             if (isLocalMavenRepositoryRedefined || getConfiguration().isBindLocalM2Repository() && getConfiguration().getM2Artifacts().isEmpty()) {
                 try {
                     Files.createDirectories(localM2RepositoryPath);
+                    Files.createDirectories(buildPath.resolve(dockerM2Repository));
                 } catch (final IOException ioException) {
                     throw new GradleException("Fail to create local M2 repository bind entry", ioException);
                 }
                 dockerCommandAndArguments.addAll(Arrays.asList("-v", localM2RepositoryPath + ":" + dockerHostEndpoint + "/" + dockerM2Repository));
             }
+
+            if (Boolean.TRUE.equals(getConfiguration().getMapProjectDir())) {
+                dockerCommandAndArguments.addAll(Arrays.asList("-v", getProject().getRootProject().getProjectDir() + ":" + dockerHostEndpoint + "/" + projectSource));
+            }
+            if (Boolean.TRUE.equals(getConfiguration().getUsePodman())) {
+                LOGGER.debug("Add podman options");
+                dockerCommandAndArguments.add("--userns=keep-id");
+            }
             dockerCommandAndArguments.addAll(getConfiguration().getDockerOptions());
             dockerCommandAndArguments.add(getConfiguration().getImage());
-
-            dockerCommandAndArguments.addAll(Arrays.asList("./gradlew", "--no-daemon", "--gradle-user-home", dockerHostEndpoint + "/.gradle", "-Duser.home=" + dockerHostEndpoint));
+            dockerCommandAndArguments.addAll(Arrays.asList("./gradlew", "--no-watch-fs", "--no-daemon", "--project-cache-dir", projectCacheDir, "--gradle-user-home", dockerHostEndpoint + "/.gradle", "-Duser.home=" + dockerHostEndpoint));
+            dockerCommandAndArguments.addAll(getConfiguration().getAdditionalGradleArguments());
             dockerCommandAndArguments.addAll(gradleCommandAndArguments.stream().map(argument -> {
                 if (isLocalMavenRepositoryRedefined && argument.startsWith("-Dmaven.repo.local=")) {
                     return "-Dmaven.repo.local=" + dockerM2Repository;

@@ -58,6 +58,7 @@ public class PlatformLibGradleWrapperPlugin implements Plugin<Project>  {
                 //The plugin is being executed with special option, which means tha we are inside container
                 return;
             }
+            project.getLogger().debug("Configure platform-lib gradle wrapper");
             if (platformLibGradleWrapperExtension.getWrapperBaseDir() != null)
                 dockerBaseBuildPath = platformLibGradleWrapperExtension.getWrapperBaseDir();
             else {

@@ -12,6 +12,9 @@ public class DockerGradleWrapperConfiguration extends PlatformLibGradleWrapperCo
     private String workDir;
     private boolean mapBuildDir;
     private boolean bindLocalM2Repository;
+    private Boolean mapProjectDir;
+    private Collection<String> additionalGradleArguments = new ArrayList<>();
+    private Boolean usePodman;
 
     public DockerGradleWrapperConfiguration(final String name) {
         this.name = name;
@@ -80,5 +83,33 @@ public class DockerGradleWrapperConfiguration extends PlatformLibGradleWrapperCo
 
     public boolean isBindLocalM2Repository() {
         return bindLocalM2Repository;
+    }
+
+    public Boolean getMapProjectDir() {
+        return mapProjectDir;
+    }
+
+    public void mapProjectDir() {
+        setMapProjectDir(true);
+    }
+
+    public void setMapProjectDir(Boolean mapProjectDir) {
+        this.mapProjectDir = mapProjectDir;
+    }
+
+    public Collection<String> getAdditionalGradleArguments() {
+        return additionalGradleArguments;
+    }
+
+    public void setAdditionalGradleArguments(Collection<String> additionalGradleArguments) {
+        this.additionalGradleArguments = additionalGradleArguments;
+    }
+
+    public Boolean getUsePodman() {
+        return usePodman;
+    }
+
+    public void setUsePodman(Boolean usePodman) {
+        this.usePodman = usePodman;
     }
 }
