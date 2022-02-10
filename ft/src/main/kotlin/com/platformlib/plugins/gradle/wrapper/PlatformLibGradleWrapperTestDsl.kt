@@ -14,6 +14,7 @@ val gradleWrapperPluginVersion: String = System.getProperty(platformlibGradleWra
 
 class GradleDsl {
     var tasks: Collection<String> = emptyList()
+    var expectedFailure = false
 }
 
 data class GradleExec(val gradleProjectDir: Path,
@@ -44,8 +45,11 @@ fun gradle(gradleProject: String, init: GradleDsl.() -> Unit): GradleExec {
             .build().execute(*cla.toArray())
             .toCompletableFuture()
             .join().also {
-                if (it.exitCode != 0) {
+                if (!gradleDsl.expectedFailure && it.exitCode != 0) {
                     throw IllegalStateException("Fail to run gradle command because of exit code ${it.exitCode}")
+                }
+                if (gradleDsl.expectedFailure && it.exitCode == 0) {
+                    throw IllegalStateException("The gradle has been executed successfully, but waited fail")
                 }
             }
     return GradleExec(projectPath, gradleProcessInstance)

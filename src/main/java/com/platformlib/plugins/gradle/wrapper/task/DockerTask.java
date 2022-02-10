@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
  */
 public class DockerTask extends DefaultTask {
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerTask.class);
+    private String containerCommand;
     private String image;
     private Collection<Object> dockerOptions = new ArrayList<>();
     private String workDir;
@@ -57,6 +58,10 @@ public class DockerTask extends DefaultTask {
             commandAndArguments.addAll(platformLibDockerWrapperExtension.getCommandAndArguments());
             env.putAll(platformLibDockerWrapperExtension.getEnv());
         }
+    }
+
+    public void setContainerCommand(String containerCommand) {
+        this.containerCommand = containerCommand;
     }
 
     public void setImage(final String image) {
@@ -85,6 +90,12 @@ public class DockerTask extends DefaultTask {
 
     public void setVerbose(final Boolean verbose) {
         this.verbose = verbose;
+    }
+
+    @Input
+    @Optional
+    public String getContainerCommand() {
+        return containerCommand;
     }
 
     @Input
@@ -130,15 +141,23 @@ public class DockerTask extends DefaultTask {
 
     @TaskAction
     public void executeInDockerContainer() {
-        String dockerCommand = "docker";
-        final String dockerBinEnvParameter = (String) getProject().getRootProject().getProperties().get("platformlib.docker-bin-env-parameter");
-        if (dockerBinEnvParameter != null) {
-            final String dockerBinEnv = System.getenv(dockerBinEnvParameter);
-            if (dockerBinEnv != null) {
-                dockerCommand = dockerBinEnv;
+        final String containerBinEnvParameter = (String) getProject().getRootProject().getProperties().get("platformlib.container-bin.env-parameter");
+        if (containerBinEnvParameter != null) {
+            final String containerBinEnv = System.getenv(containerBinEnvParameter);
+            if (containerBinEnv != null) {
+                containerCommand = containerBinEnv;
             }
         }
-        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList(dockerCommand, "container", "run", "--rm"));
+        if (containerCommand == null) {
+            final String projectSpecifiedContainerCommand = (String) getProject().getRootProject().getProperties().get("platformlib.container-bin.command");
+            if (projectSpecifiedContainerCommand != null) {
+                containerCommand = projectSpecifiedContainerCommand;
+            } else {
+                // TODO Check docker or podman should be used
+                containerCommand = "docker";
+            }
+        }
+        final List<String> dockerCommandAndArguments = new ArrayList<>(Arrays.asList(containerCommand, "container", "run", "--rm"));
         try (OsPlatform osPlatform = LocalOsPlatform.getInstance()) {
             if (osPlatform.getOsFamily() == OsFamily.UNIX) {
                 final PosixOsUser posixOsUser = osPlatform.getTypedOsInterface(PosixOsInterface.class).getCurrentUser();

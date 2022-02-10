@@ -21,10 +21,21 @@ class DockerTaskTest {
 
     @Test
     fun testEnvDockerTask() {
-        assertThat(gradle("env-docker-task") {
+        assertThat(
+            gradle("env-docker-task") {
                 tasks = listOf("echo")
             }.gradleProcessInstance.stdOut.contains("Every method has to be covered by test")
         ).isTrue
+    }
+
+    @Test
+    fun testContainerCommand() {
+        assertThat(
+            gradle("container-command") {
+                tasks = listOf("buildGoApplication")
+                expectedFailure = true
+            }.gradleProjectDir.resolve("build/docker-command-buildGoApplication.sh")
+        ).content().contains("container-2022 container run --rm")
     }
 
     @Test
