@@ -28,6 +28,10 @@ gradlePlugin {
             id = 'com.platformlib.gradle-wrapper'
             implementationClass = 'com.platformlib.plugins.gradle.wrapper.PlatformLibGradleWrapperPlugin'
         }
+        gradleContainerPlugin {
+            id = 'com.platformlib.container'
+            implementationClass = 'com.platformlib.plugins.gradle.container.PlatformLibGradleContainerPlugin'
+        }
     }
 }
 
@@ -51,8 +55,6 @@ sourceSets {
 }
 
 java {
-    withJavadocJar()
-    withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
